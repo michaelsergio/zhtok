@@ -4,8 +4,6 @@ const _ = require('lodash');
 const tokenize = zhtok.loadFile('./cedict_ts.u8');
 const cheerio = require('cheerio');
 
-
-
 const app = express();
 const port = 3005;
 
@@ -28,7 +26,9 @@ const js = `<script>
 function say(txt) {
     const synth = window.speechSynthesis;
     const utterThis = new SpeechSynthesisUtterance(txt);
-    const voice = synth.getVoices().filter(x=> x.lang == "zh-CN")[1];
+    const zhVoices = synth.getVoices().filter(x=> x.lang == "zh-CN");
+    if (zhVoices.length === 0) return;
+    const voice = zhVoices[1 % zhVoices.length];
     utterThis.voice = voice;
     synth.speak(utterThis);
 }
