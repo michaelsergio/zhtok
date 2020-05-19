@@ -16,10 +16,11 @@ const css = `<style>
         font-size: 20px;
     }
     table td:first-child { min-width: 150px; }
-    td { min-width: 80px; }
+    td { min-width: 50px; }
     td p { margin: 0; }
     td span { margin-right: 1em; }
     tr:nth-child(even) { background-color: #f2f2f2; }
+    thead { background-color: #f2f2f2; }
 </style>`;
 
 const js = `<script>
