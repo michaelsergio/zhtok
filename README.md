@@ -1,4 +1,13 @@
-Takes chinese page and finds the frequency.
+# ZH TOK
 
-To package this on github, I should write a build script so i don't have to commit
-the 8 MB data file.
+Given a chinese page and finds the frequency.
+
+# Download Dictionary
+
+`sh download_dict.sh`
+
+# Run
+
+Make sure dictionary is downloaded and run 
+`npm run start`
+

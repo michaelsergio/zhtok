@@ -1,7 +1,8 @@
 const express = require('express')
 const zhtok = require('chinese-tokenizer');
 const _ = require('lodash');
-const tokenize = zhtok.loadFile('./cedict_ts.u8');
+const dictPath = process.env.DICT_PATH || "./cedict_ts.u8";
+const tokenize = zhtok.loadFile(dictPath);
 const cheerio = require('cheerio');
 
 const app = express();
@@ -12,10 +13,10 @@ const css = `<style>
         width: 80%;
         margin: auto;
     }
-    table {
-        font-size: 20px;
-    }
+    div { margin: 12px 0; }
+    table { font-size: 20px; }
     table td:first-child { min-width: 150px; }
+    input { min-width: 80%; }
     td { min-width: 50px; }
     td p { margin: 0; }
     td span { margin-right: 1em; }
@@ -35,12 +36,15 @@ function say(txt) {
 }
 </script>`
 
+const head = `<head><title>汉语 Freq</title>${css}${js}</head>`
+
 const toRow = (groups) => {
     const len = groups.length;
     const item = groups[0];
     const matches = item.matches.map((x) => `<p><span>${x.pinyinPretty}</span><span>${x.english}</span></p>`).join("");
     return `<tr>
-        <td onClick='say("${item.simplified}")'>${item.simplified}</td>
+        <td>${item.simplified}</td>
+        <td onClick='say("${item.simplified}")'>▶️</td>
         <td>${len}</td>
         <td>${matches}</td>
         </tr>`
@@ -52,27 +56,44 @@ const toTable = (text) => {
     const tokens = tokenize(text);
     const groups = _.groupBy(tokens, (x) => x.simplified);
     const inorder = _.orderBy(groups, [(x) => x.length], ['desc']);
-    // const notweird = inorder.filter((x) => x[0].simplified.charCodeAt(0) > 127).filter((x) => x[0].simplified.length < 10)
     const notweird = inorder.filter((x) => x[0].matches.length > 0).filter((x) => x[0].simplified.charCodeAt(0) > 127);
     const rows = _.map(notweird, toRow).join("");
-    return `<table>
-    <thead><tr><td>Char</td><td>Freq</td><td>Definition</td></tr></thead>
-    <tbody>${rows}</tbody>
-    </table>`;
+    const unique = notweird.length;
+    return `<div>
+        <p>Found ${unique} unique phrases.</p>
+        <div>
+            <table>
+            <thead><tr><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7+</td></tr>
+            <tbody><tr>
+            <td>${notweird.filter((x) => x.length === 1).length}</td>
+            <td>${notweird.filter((x) => x.length === 2).length}</td>
+            <td>${notweird.filter((x) => x.length === 3).length}</td>
+            <td>${notweird.filter((x) => x.length === 4).length}</td>
+            <td>${notweird.filter((x) => x.length === 5).length}</td>
+            <td>${notweird.filter((x) => x.length === 6).length}</td>
+            <td>${notweird.filter((x) => x.length >= 7).length}</td>
+            </tr></tbody>
+            </table>
+        </div>
+        <table>
+            <thead><tr><td>Char</td><td>Say</td><td>Freq</td><td>Definition</td></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`;
 }
 
-const formPage = `<html>
+const formElement = `<div class="source-article">
         <form action="" method="get">
             <label htmlFor="">Enter text or URL</label>
             <input name="q" type="text"/>
         </form>
-    </html>`;
+    </div>`;
 
 app.get('/', async(req, res) => {
     const q = req.query.q;
     console.log("Got", q)
     if (q === undefined) {
-        return res.send(formPage);
+        return res.send(`<html>${head}<h1>Frequency</h1>${formElement}</html>`);
     } 
     if (q.startsWith("http")) {
         const axios = require('axios');
@@ -83,9 +104,12 @@ app.get('/', async(req, res) => {
                 const text = $('body').text();
                 return res.send(`
                 <html>
-                ${js}
-                ${css}
-                <a href="${q}" target="_blank">Original Link: ${q}</a>
+                ${head}
+                <h1>Frequency</h1>
+                ${formElement}
+                <div>
+                    <a href="${q}" target="_blank">Original Link: ${q}</a>
+                </div>
                 ${toTable(text)}
                 </html>`);
             })
@@ -94,12 +118,12 @@ app.get('/', async(req, res) => {
                 return res.send(`Failed to parse url: ${q}`);
             })
     } 
-    return res.send(`<html>${js}${css}${toTable(q)}</html>`);
+    return res.send(`<html>${head}<h1>Frequency</h1>${formElement}${toTable(q)}</html>`);
 });
 
 app.get('/test', (req, res) => {
     const output = toTable('我。我是中國人。');
-    res.send(`<html>${js}${css}${output}</html>`);
+    res.send(`<html>${head}${output}</html>`);
 })
 
 app.listen(port, () => console.log(`Example app listening at http://localhost:${port}`))
